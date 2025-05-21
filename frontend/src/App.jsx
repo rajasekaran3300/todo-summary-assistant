@@ -1,35 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import TodoForm from './components/TodoForm';
+import TodoList from './components/TodoList';
+import axios from 'axios';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  const [todos, setTodos] = useState([]);
+  const [editTodoId, setEditTodoId] = useState(null);
+  const [editText, setEditText] = useState('');
+
+
+  const startEdit = (todo) => {
+    setEditTodoId(todo.id);
+    setEditText(todo.text);
+  };
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/todos')
+      .then(res => setTodos(res.data))
+      .catch(err => console.error(err));
+  }, []);
+
+
+  const addTodo = async (text) => {
+    try {
+      const res = await axios.post('http://localhost:5000/todos', { text });
+      setTodos([...todos, res.data]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
+  const deleteTodo = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/todos/${id}`);
+      setTodos(todos.filter(todo => todo.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const saveEdit = async () => {
+    const updatedTodos = todos.map(todo =>
+      todo.id === editTodoId ? { ...todo, text: editText } : todo
+    );
+    setTodos(updatedTodos);
+    setEditTodoId(null);
+    setEditText("");
+  };
+
+
+  const handleEdit = (todo) => {
+    setEditTodoId(todo.id);
+    setEditText(todo.text);
+  };
+
+
+
+  const editTodo = (todo) => {
+    // For now, just log to console. We'll implement editing next.
+    console.log('Edit clicked for:', todo);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="container mt-5">
+      <h1 className="text-center mb-4">📝 Todo Summary Assistant</h1>
+      <TodoForm
+        onAdd={addTodo}
+        editMode={editTodoId !== null}
+        editText={editText}
+        setEditText={setEditText}
+        onEditSave={saveEdit}
+      />
 
-export default App
+
+
+      <TodoList todos={todos} onDelete={deleteTodo} onEdit={editTodo} />
+    </div>
+  );
+};
+
+export default App;
